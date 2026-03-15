@@ -3,10 +3,10 @@ import CommentSection from "./CommentSection";
 
 export default function PostCard({ post }) {
 
-	const [expandedImage, setExpandedImage] = useState(null);
+	const [viewerIndex, setViewerIndex] = useState(null);
 
-	// Support both array (new) and string (legacy)
 	let images = [];
+
 	if (Array.isArray(post.images) && post.images.length > 0) {
 		images = post.images;
 	} else if (post.imageData) {
@@ -20,13 +20,24 @@ export default function PostCard({ post }) {
 		return img;
 	};
 
+	const next = (e) => {
+		e.stopPropagation();
+		setViewerIndex((viewerIndex + 1) % images.length);
+	};
+
+	const prev = (e) => {
+		e.stopPropagation();
+		setViewerIndex((viewerIndex - 1 + images.length) % images.length);
+	};
+
 	return (
 		<>
+
 			<div className="post-card">
 
-				<div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+				<div style={{ display: "flex", gap: 12 }}>
 
-					{/* Avatar */}
+					{/* avatar */}
 					<div
 						style={{
 							width: 48,
@@ -39,88 +50,113 @@ export default function PostCard({ post }) {
 
 					<div style={{ flex: 1, minWidth: 0 }}>
 
-						<div style={{ fontWeight: 500, fontSize: 16, marginBottom: 4 }}>
-							@user
-						</div>
+						<div style={{ fontWeight: 600 }}>@user</div>
 
-						<div style={{ fontSize: 15, marginBottom: 8, whiteSpace: "pre-line" }}>
+						<div style={{ marginTop: 4, whiteSpace: "pre-line" }}>
 							{post.content}
 						</div>
 
 						{/* IMAGES */}
+
 						{images.length > 0 && (
+
 							<div
 								style={{
-									width: "100%",
-									marginTop: 8
+									display: "grid",
+									gridTemplateColumns:
+										images.length === 1
+											? "1fr"
+											: images.length === 2
+											? "1fr 1fr"
+											: "1fr 1fr",
+									gap: 6,
+									marginTop: 10
 								}}
 							>
 
-								{images.map((img, idx) => (
+								{images.map((img, i) => (
 
 									<img
-										key={idx}
+										key={i}
 										src={getImageSrc(img)}
 										alt="post"
-										onClick={() => setExpandedImage(getImageSrc(img))}
+										onClick={() => setViewerIndex(i)}
 										style={{
 											width: "100%",
-											maxHeight: 600,
+											height: images.length === 1 ? 450 : 220,
 											objectFit: "cover",
 											borderRadius: 14,
-											cursor: "pointer",
-											display: "block",
-											marginBottom: 6
+											cursor: "pointer"
 										}}
 									/>
 
 								))}
 
 							</div>
+
 						)}
 
-						{/* Hashtags */}
-						<div style={{ margin: "8px 0" }}>
+						{/* hashtags */}
+
+						<div style={{ marginTop: 8 }}>
 							{post.hashtags?.map(tag => (
 								<span className="hashtag" key={tag}>{tag}</span>
 							))}
 						</div>
 
-						{/* Timestamp */}
-						<div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
-							{post.createdAt && new Date(post.createdAt).toLocaleString()}
+						{/* time */}
+
+						<div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+							{post.createdAt &&
+								new Date(post.createdAt).toLocaleString()}
 						</div>
 
 						<CommentSection post={post} />
 
 					</div>
+
 				</div>
+
 			</div>
 
 
-			{/* EXPANDED IMAGE MODAL */}
+			{/* IMAGE VIEWER */}
 
-			{expandedImage && (
+			{viewerIndex !== null && (
 
 				<div
-					onClick={() => setExpandedImage(null)}
+					onClick={() => setViewerIndex(null)}
 					style={{
 						position: "fixed",
-						top: 0,
-						left: 0,
-						width: "100vw",
-						height: "100vh",
+						inset: 0,
 						background: "rgba(0,0,0,0.9)",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
-						zIndex: 9999,
-						cursor: "zoom-out"
+						zIndex: 9999
 					}}
 				>
 
+					{/* left arrow */}
+
+					{images.length > 1 && (
+						<div
+							onClick={prev}
+							style={{
+								position: "absolute",
+								left: 30,
+								fontSize: 40,
+								color: "white",
+								cursor: "pointer",
+								userSelect: "none"
+							}}
+						>
+							‹
+						</div>
+					)}
+
 					<img
-						src={expandedImage}
+						src={getImageSrc(images[viewerIndex])}
 						alt="expanded"
 						style={{
 							maxWidth: "95%",
@@ -129,6 +165,24 @@ export default function PostCard({ post }) {
 							borderRadius: 10
 						}}
 					/>
+
+					{/* right arrow */}
+
+					{images.length > 1 && (
+						<div
+							onClick={next}
+							style={{
+								position: "absolute",
+								right: 30,
+								fontSize: 40,
+								color: "white",
+								cursor: "pointer",
+								userSelect: "none"
+							}}
+						>
+							›
+						</div>
+					)}
 
 				</div>
 
