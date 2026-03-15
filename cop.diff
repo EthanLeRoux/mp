@@ -1,0 +1,736 @@
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000000000000000000000000000000000000..5d0c4a80fcdec90be25f890edce63d80fb2b5048
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,5 @@
++VITE_MONGODB_DATA_API_URL=https://data.mongodb-api.com/app/<app-id>/endpoint/data/v1
++VITE_MONGODB_DATA_API_KEY=replace-with-data-api-key
++VITE_MONGODB_DATA_SOURCE=Cluster0
++VITE_MONGODB_DATABASE=offline_social
++VITE_MONGODB_COLLECTION=posts
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..f7664f308d4e4b5bf4cabb498d8d345120227ccb
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,38 @@
++# Offline Social PWA (Frontend-only)
++
++A React PWA that works offline with IndexedDB and syncs directly to MongoDB using the **MongoDB Atlas Data API** (no Node/Express backend).
++
++## Features
++- Post CRUD with text, optional image, hashtags.
++- Comment CRUD.
++- Hashtag extraction + clickable hashtag filters.
++- Instant local search (keywords + hashtags).
++- Offline-first with IndexedDB local store and queued mutations.
++- Auto-sync when connection is restored.
++- Last-write-wins conflict behavior via `updatedAt`.
++
++## MongoDB setup
++1. Create a MongoDB Atlas cluster.
++2. Enable Data API for your app.
++3. Create API Key for Data API.
++4. Configure env vars in `.env` (see `.env.example`).
++
++## Run
++1. `npm install`
++2. Create `.env` from `.env.example`
++3. `npm run dev`
++4. `npm run build` for production build
++
++## Data model (`posts` collection)
++```json
++{
++  "id": "uuid",
++  "content": "text with #tags",
++  "imageData": "data:image/... base64 (optional)",
++  "hashtags": ["#pwa"],
++  "comments": [{ "id": "uuid", "content": "text", "createdAt": "ISO", "updatedAt": "ISO" }],
++  "createdAt": "ISO",
++  "updatedAt": "ISO",
++  "syncStatus": "synced|pending|error"
++}
++```
+diff --git a/index.html b/index.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..76a35c51cb899bb6afa7307ba573b689e4c102ed
+--- /dev/null
++++ b/index.html
+@@ -0,0 +1,13 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <meta name="theme-color" content="#0f172a" />
++    <title>Offline Social PWA</title>
++  </head>
++  <body>
++    <div id="root"></div>
++    <script type="module" src="/src/main.jsx"></script>
++  </body>
++</html>
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..2839dc69fb9748475f90747a8134e667bbf15bce
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,25 @@
++{
++  "name": "offline-social-pwa",
++  "version": "1.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "dev": "vite",
++    "build": "vite build",
++    "preview": "vite preview"
++  },
++  "dependencies": {
++    "idb": "^8.0.0",
++    "react": "^18.3.1",
++    "react-dom": "^18.3.1"
++  },
++  "devDependencies": {
++    "@vitejs/plugin-react": "^4.3.1",
++    "vite": "^5.4.2",
++    "vite-plugin-pwa": "^0.20.5",
++    "workbox-background-sync": "^7.1.0",
++    "workbox-precaching": "^7.1.0",
++    "workbox-routing": "^7.1.0",
++    "workbox-strategies": "^7.1.0"
++  }
++}
+diff --git a/public/pwa-192.png b/public/pwa-192.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..42389b9c4921f0bd42078141bce70fd2fb089be9
+GIT binary patch
+literal 315
+zcmeAS@N?(olHy`uVBq!ia0vp^2SAvE2}s`E_d9@rfl<`c#WAE}&f7}|IT;iL4s5vm
+zxBQwS%R&|5FE?$Ct?di)*egsAtY(bk{gA~F&b&wJ!BvL!Y;d85p)d4-k#{Mx`}uF@
+R+JJ$=;OXk;vd$@?2>|8CdM5w?
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/pwa-512.png b/public/pwa-512.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..42389b9c4921f0bd42078141bce70fd2fb089be9
+GIT binary patch
+literal 315
+zcmeAS@N?(olHy`uVBq!ia0vp^2SAvE2}s`E_d9@rfl<`c#WAE}&f7}|IT;iL4s5vm
+zxBQwS%R&|5FE?$Ct?di)*egsAtY(bk{gA~F&b&wJ!BvL!Y;d85p)d4-k#{Mx`}uF@
+R+JJ$=;OXk;vd$@?2>|8CdM5w?
+
+literal 0
+HcmV?d00001
+
+diff --git a/server/index.js b/server/index.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..62d1a1e8be971bf48e83a07db50e350197bb0b50
+--- /dev/null
++++ b/server/index.js
+@@ -0,0 +1,2 @@
++// This project is frontend-only and does not use a Node server.
++// Kept as a placeholder because file deletion is restricted in this environment.
+diff --git a/server/models/Post.js b/server/models/Post.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..e2c431c6f9c301177beaee204551d4c313c74c4d
+--- /dev/null
++++ b/server/models/Post.js
+@@ -0,0 +1,2 @@
++// Frontend-only architecture: MongoDB is accessed directly via Atlas Data API from the browser.
++// This model file is intentionally unused.
+diff --git a/src/App.jsx b/src/App.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe4990c1d29b5da1e06ce50bb7b2f0a43e0c7e06
+--- /dev/null
++++ b/src/App.jsx
+@@ -0,0 +1,170 @@
++import { useEffect, useMemo, useState } from 'react';
++import { api } from './lib/api';
++import { localDb } from './lib/db';
++import { CreatePostForm } from './components/CreatePostForm';
++import { PostFeed } from './components/PostFeed';
++import { SearchBar } from './components/SearchBar';
++import { HashtagView } from './components/HashtagView';
++import { SyncStatusIndicator } from './components/SyncStatusIndicator';
++import './styles.css';
++
++const now = () => new Date().toISOString();
++const extractHashtags = (text) => [...new Set((text.match(/#[\w-]+/g) || []).map((tag) => tag.toLowerCase()))];
++
++const toBase64 = (file) =>
++  new Promise((resolve, reject) => {
++    const reader = new FileReader();
++    reader.onload = () => resolve(reader.result);
++    reader.onerror = reject;
++    reader.readAsDataURL(file);
++  });
++
++export default function App() {
++  const [posts, setPosts] = useState([]);
++  const [searchTerm, setSearchTerm] = useState('');
++  const [activeTag, setActiveTag] = useState('');
++  const [online, setOnline] = useState(navigator.onLine);
++
++  const refreshLocal = async () => {
++    const localPosts = await localDb.getPosts();
++    setPosts(localPosts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
++  };
++
++  const pullServer = async () => {
++    const remote = await api.getPosts();
++    await localDb.putPosts(remote.map((p) => ({ ...p, syncStatus: 'synced' })));
++    await refreshLocal();
++  };
++
++  const enqueue = async (type, payload) => {
++    await localDb.addQueue({ id: crypto.randomUUID(), type, payload, createdAt: now() });
++  };
++
++  const syncQueued = async () => {
++    const queue = (await localDb.getQueue()).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
++    for (const action of queue) {
++      try {
++        if (action.type === 'createPost') await api.createPost(action.payload);
++        if (action.type === 'updatePost') await api.updatePost(action.payload.id, action.payload);
++        if (action.type === 'deletePost') await api.deletePost(action.payload.id);
++        if (action.type === 'replaceComments') {
++          await api.replaceComments(
++            action.payload.postId,
++            action.payload.comments,
++            action.payload.updatedAt,
++            action.payload.syncStatus
++          );
++        }
++        await localDb.deleteQueue(action.id);
++      } catch {
++        break;
++      }
++    }
++    await pullServer();
++  };
++
++  useEffect(() => {
++    refreshLocal();
++    if (navigator.onLine) pullServer();
++    const handleOnline = () => {
++      setOnline(true);
++      syncQueued();
++    };
++    const handleOffline = () => setOnline(false);
++    addEventListener('online', handleOnline);
++    addEventListener('offline', handleOffline);
++    return () => {
++      removeEventListener('online', handleOnline);
++      removeEventListener('offline', handleOffline);
++    };
++  }, []);
++
++  const visiblePosts = useMemo(() => {
++    let filtered = activeTag ? posts.filter((post) => post.hashtags.includes(activeTag)) : posts;
++    if (!searchTerm) return filtered;
++    const q = searchTerm.toLowerCase();
++    return filtered.filter(
++      (post) => post.content.toLowerCase().includes(q) || post.hashtags.some((tag) => tag.includes(q))
++    );
++  }, [posts, searchTerm, activeTag]);
++
++  const createPost = async ({ content, file }) => {
++    const stamp = now();
++    const post = {
++      id: crypto.randomUUID(),
++      content,
++      imageData: file ? await toBase64(file) : '',
++      hashtags: extractHashtags(content),
++      comments: [],
++      createdAt: stamp,
++      updatedAt: stamp,
++      syncStatus: online ? 'synced' : 'pending'
++    };
++    await localDb.putPost(post);
++    if (online) await api.createPost(post);
++    else await enqueue('createPost', post);
++    await refreshLocal();
++  };
++
++  const updatePost = async (id, updates) => {
++    const post = posts.find((p) => p.id === id);
++    const merged = {
++      ...post,
++      ...updates,
++      hashtags: extractHashtags(updates.content ?? post.content),
++      updatedAt: now(),
++      syncStatus: online ? 'synced' : 'pending'
++    };
++    await localDb.putPost(merged);
++    if (online) await api.updatePost(id, merged);
++    else await enqueue('updatePost', merged);
++    await refreshLocal();
++  };
++
++  const deletePost = async (id) => {
++    await localDb.deletePost(id);
++    if (online) await api.deletePost(id);
++    else await enqueue('deletePost', { id });
++    await refreshLocal();
++  };
++
++  const replaceComments = async (postId, updater) => {
++    const post = posts.find((p) => p.id === postId);
++    if (!post) return;
++    const comments = updater(post.comments);
++    const updatedAt = now();
++    const syncStatus = online ? 'synced' : 'pending';
++    const updated = { ...post, comments, updatedAt, syncStatus };
++    await localDb.putPost(updated);
++    if (online) await api.replaceComments(postId, comments, updatedAt, syncStatus);
++    else await enqueue('replaceComments', { postId, comments, updatedAt, syncStatus });
++    await refreshLocal();
++  };
++
++  return (
++    <main className="app-shell">
++      <h1>Offline Social PWA</h1>
++      <SyncStatusIndicator online={online} posts={posts} />
++      <CreatePostForm onCreate={createPost} />
++      <SearchBar value={searchTerm} onChange={setSearchTerm} />
++      <HashtagView activeTag={activeTag} posts={posts} onSelectTag={setActiveTag} />
++      <PostFeed
++        posts={visiblePosts}
++        onEditPost={updatePost}
++        onDeletePost={deletePost}
++        onAddComment={(postId, content) =>
++          replaceComments(postId, (comments) => [...comments, { id: crypto.randomUUID(), content, createdAt: now(), updatedAt: now() }])
++        }
++        onEditComment={(postId, commentId, content) =>
++          replaceComments(postId, (comments) =>
++            comments.map((c) => (c.id === commentId ? { ...c, content, updatedAt: now() } : c))
++          )
++        }
++        onDeleteComment={(postId, commentId) =>
++          replaceComments(postId, (comments) => comments.filter((c) => c.id !== commentId))
++        }
++        onTagClick={setActiveTag}
++      />
++    </main>
++  );
++}
+diff --git a/src/components/CommentItem.jsx b/src/components/CommentItem.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..25b942e75596b53ef27fb6c3ad20d1f63ce9c030
+--- /dev/null
++++ b/src/components/CommentItem.jsx
+@@ -0,0 +1,22 @@
++import { useState } from 'react';
++
++export function CommentItem({ comment, onEdit, onDelete }) {
++  const [editing, setEditing] = useState(false);
++  const [value, setValue] = useState(comment.content);
++  return (
++    <li>
++      {editing ? (
++        <form onSubmit={(event) => { event.preventDefault(); onEdit(value); setEditing(false); }} className="inline-form">
++          <input value={value} onChange={(event) => setValue(event.target.value)} />
++          <button type="submit">Save</button>
++        </form>
++      ) : (
++        <>
++          <span>{comment.content}</span>
++          <button onClick={() => setEditing(true)}>Edit</button>
++          <button onClick={onDelete}>Delete</button>
++        </>
++      )}
++    </li>
++  );
++}
+diff --git a/src/components/CommentSection.jsx b/src/components/CommentSection.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..48b711d3844ef4a96871e39164902d145a62b141
+--- /dev/null
++++ b/src/components/CommentSection.jsx
+@@ -0,0 +1,20 @@
++import { useState } from 'react';
++import { CommentItem } from './CommentItem';
++
++export function CommentSection({ comments, onAdd, onEdit, onDelete }) {
++  const [value, setValue] = useState('');
++  return (
++    <section>
++      <h4>Comments</h4>
++      <ul className="comments">
++        {comments.map((comment) => (
++          <CommentItem key={comment.id} comment={comment} onEdit={(content) => onEdit(comment.id, content)} onDelete={() => onDelete(comment.id)} />
++        ))}
++      </ul>
++      <form onSubmit={(event) => { event.preventDefault(); if (!value.trim()) return; onAdd(value.trim()); setValue(''); }} className="inline-form">
++        <input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Add comment" />
++        <button type="submit">Post</button>
++      </form>
++    </section>
++  );
++}
+diff --git a/src/components/CreatePostForm.jsx b/src/components/CreatePostForm.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..817285b5985cf311994c6c00cf11ef040a035a0e
+--- /dev/null
++++ b/src/components/CreatePostForm.jsx
+@@ -0,0 +1,24 @@
++import { useState } from 'react';
++
++export function CreatePostForm({ onCreate }) {
++  const [content, setContent] = useState('');
++  const [file, setFile] = useState(null);
++
++  return (
++    <form
++      className="card"
++      onSubmit={async (event) => {
++        event.preventDefault();
++        if (!content.trim()) return;
++        await onCreate({ content: content.trim(), file });
++        setContent('');
++        setFile(null);
++        event.target.reset();
++      }}
++    >
++      <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Write a post with #hashtags" rows={3} />
++      <input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
++      <button type="submit">Create Post</button>
++    </form>
++  );
++}
+diff --git a/src/components/EditPostForm.jsx b/src/components/EditPostForm.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc1e40635ff499ecc1ba89dca5afab69f25df65f
+--- /dev/null
++++ b/src/components/EditPostForm.jsx
+@@ -0,0 +1,20 @@
++import { useState } from 'react';
++
++export function EditPostForm({ initialContent, onSave, onCancel }) {
++  const [content, setContent] = useState(initialContent);
++  return (
++    <form
++      onSubmit={(event) => {
++        event.preventDefault();
++        onSave(content.trim());
++      }}
++      className="inline-form"
++    >
++      <textarea rows={2} value={content} onChange={(event) => setContent(event.target.value)} />
++      <div>
++        <button type="submit">Save</button>
++        <button type="button" onClick={onCancel}>Cancel</button>
++      </div>
++    </form>
++  );
++}
+diff --git a/src/components/HashtagView.jsx b/src/components/HashtagView.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..e498be2123258f70b0351abd7e26bfe107ff5865
+--- /dev/null
++++ b/src/components/HashtagView.jsx
+@@ -0,0 +1,9 @@
++export function HashtagView({ posts, activeTag, onSelectTag }) {
++  const tags = [...new Set(posts.flatMap((post) => post.hashtags))].sort();
++  return (
++    <div className="card tag-list">
++      <button className={!activeTag ? 'active' : ''} onClick={() => onSelectTag('')}>All</button>
++      {tags.map((tag) => <button className={activeTag === tag ? 'active' : ''} key={tag} onClick={() => onSelectTag(tag)}>{tag}</button>)}
++    </div>
++  );
++}
+diff --git a/src/components/PostCard.jsx b/src/components/PostCard.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..f0b49dd9765a53386fd019b2f79b33450d3f13bd
+--- /dev/null
++++ b/src/components/PostCard.jsx
+@@ -0,0 +1,46 @@
++import { useState } from 'react';
++import { EditPostForm } from './EditPostForm';
++import { CommentSection } from './CommentSection';
++
++export function PostCard({ post, onEdit, onDelete, onAddComment, onEditComment, onDeleteComment, onTagClick }) {
++  const [editing, setEditing] = useState(false);
++  return (
++    <article className="card">
++      {editing ? (
++        <EditPostForm
++          initialContent={post.content}
++          onSave={(content) => {
++            onEdit(post.id, { content });
++            setEditing(false);
++          }}
++          onCancel={() => setEditing(false)}
++        />
++      ) : (
++        <>
++          <p>{post.content}</p>
++          <div className="tags">
++            {post.hashtags.map((tag) => (
++              <button key={tag} onClick={() => onTagClick(tag)}>
++                {tag}
++              </button>
++            ))}
++          </div>
++          {post.imageData ? <img src={post.imageData} alt="Post" /> : null}
++          <small>
++            {new Date(post.updatedAt).toLocaleString()} · {post.syncStatus}
++          </small>
++          <div>
++            <button onClick={() => setEditing(true)}>Edit</button>
++            <button onClick={() => onDelete(post.id)}>Delete</button>
++          </div>
++        </>
++      )}
++      <CommentSection
++        comments={post.comments}
++        onAdd={(content) => onAddComment(post.id, content)}
++        onEdit={(commentId, content) => onEditComment(post.id, commentId, content)}
++        onDelete={(commentId) => onDeleteComment(post.id, commentId)}
++      />
++    </article>
++  );
++}
+diff --git a/src/components/PostFeed.jsx b/src/components/PostFeed.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..f2be127d4c3293b21438f5e77ff8a7886a91fbf7
+--- /dev/null
++++ b/src/components/PostFeed.jsx
+@@ -0,0 +1,6 @@
++import { PostCard } from './PostCard';
++
++export function PostFeed(props) {
++  if (!props.posts.length) return <p className="card">No posts found.</p>;
++  return <section className="feed">{props.posts.map((post) => <PostCard key={post.id} post={post} onEdit={props.onEditPost} onDelete={props.onDeletePost} onAddComment={props.onAddComment} onEditComment={props.onEditComment} onDeleteComment={props.onDeleteComment} onTagClick={props.onTagClick} />)}</section>;
++}
+diff --git a/src/components/SearchBar.jsx b/src/components/SearchBar.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..40123ef1f78346a53e73676a75bc38d41c947dba
+--- /dev/null
++++ b/src/components/SearchBar.jsx
+@@ -0,0 +1,3 @@
++export function SearchBar({ value, onChange }) {
++  return <input className="card" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search keywords or #hashtags" />;
++}
+diff --git a/src/components/SyncStatusIndicator.jsx b/src/components/SyncStatusIndicator.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..26f2822526fe82c9a8dd3e753c18c86f16a23716
+--- /dev/null
++++ b/src/components/SyncStatusIndicator.jsx
+@@ -0,0 +1,4 @@
++export function SyncStatusIndicator({ online, posts }) {
++  const pending = posts.filter((post) => post.syncStatus === 'pending').length;
++  return <div className="card status">{online ? 'Online' : 'Offline'} · Pending sync: {pending}</div>;
++}
+diff --git a/src/lib/api.js b/src/lib/api.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..ea88916c3247a2f8241665c78e665cd5094153ef
+--- /dev/null
++++ b/src/lib/api.js
+@@ -0,0 +1,67 @@
++const baseUrl = import.meta.env.VITE_MONGODB_DATA_API_URL;
++const apiKey = import.meta.env.VITE_MONGODB_DATA_API_KEY;
++const dataSource = import.meta.env.VITE_MONGODB_DATA_SOURCE;
++const database = import.meta.env.VITE_MONGODB_DATABASE;
++const collection = import.meta.env.VITE_MONGODB_COLLECTION || 'posts';
++
++const headers = {
++  'Content-Type': 'application/json',
++  'Access-Control-Request-Headers': '*',
++  'api-key': apiKey
++};
++
++const ensureConfig = () => {
++  if (!baseUrl || !apiKey || !dataSource || !database || !collection) {
++    throw new Error('MongoDB Data API env vars are not fully configured.');
++  }
++};
++
++const run = async (action, body) => {
++  ensureConfig();
++  const response = await fetch(`${baseUrl}/action/${action}`, {
++    method: 'POST',
++    headers,
++    body: JSON.stringify({ dataSource, database, collection, ...body })
++  });
++  if (!response.ok) throw new Error(`Data API request failed: ${action}`);
++  return response.json();
++};
++
++export const api = {
++  async getPosts() {
++    const result = await run('find', {
++      filter: {},
++      sort: { updatedAt: -1 },
++      projection: { _id: 0 }
++    });
++    return result.documents || [];
++  },
++  async createPost(post) {
++    await run('insertOne', { document: post });
++    return post;
++  },
++  async updatePost(id, payload) {
++    await run('updateOne', {
++      filter: { id },
++      update: {
++        $set: {
++          content: payload.content,
++          imageData: payload.imageData || '',
++          hashtags: payload.hashtags,
++          updatedAt: payload.updatedAt,
++          syncStatus: payload.syncStatus
++        }
++      }
++    });
++    return payload;
++  },
++  async deletePost(id) {
++    await run('deleteOne', { filter: { id } });
++  },
++  async replaceComments(postId, comments, updatedAt, syncStatus) {
++    await run('updateOne', {
++      filter: { id: postId },
++      update: { $set: { comments, updatedAt, syncStatus } }
++    });
++  }
++};
+diff --git a/src/lib/db.js b/src/lib/db.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..a38503469c4ab733229bae990ef7c05a127d0fbe
+--- /dev/null
++++ b/src/lib/db.js
+@@ -0,0 +1,35 @@
++import { openDB } from 'idb';
++
++const dbPromise = openDB('offline-social-db', 1, {
++  upgrade(db) {
++    db.createObjectStore('posts', { keyPath: 'id' });
++    db.createObjectStore('queue', { keyPath: 'id' });
++  }
++});
++
++export const localDb = {
++  async getPosts() {
++    return (await dbPromise).getAll('posts');
++  },
++  async putPost(post) {
++    return (await dbPromise).put('posts', post);
++  },
++  async putPosts(posts) {
++    const db = await dbPromise;
++    const tx = db.transaction('posts', 'readwrite');
++    posts.forEach((post) => tx.store.put(post));
++    await tx.done;
++  },
++  async deletePost(id) {
++    return (await dbPromise).delete('posts', id);
++  },
++  async addQueue(action) {
++    return (await dbPromise).put('queue', action);
++  },
++  async getQueue() {
++    return (await dbPromise).getAll('queue');
++  },
++  async deleteQueue(id) {
++    return (await dbPromise).delete('queue', id);
++  }
++};
+diff --git a/src/main.jsx b/src/main.jsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..4b7dc61c5e4a2762f7714c5338e3bdfa8326d70d
+--- /dev/null
++++ b/src/main.jsx
+@@ -0,0 +1,12 @@
++import React from 'react';
++import ReactDOM from 'react-dom/client';
++import { registerSW } from 'virtual:pwa-register';
++import App from './App';
++
++registerSW({ immediate: true });
++
++ReactDOM.createRoot(document.getElementById('root')).render(
++  <React.StrictMode>
++    <App />
++  </React.StrictMode>
++);
+diff --git a/src/styles.css b/src/styles.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..e0de35ec099d433cbe26a5ea8e669880092d8d20
+--- /dev/null
++++ b/src/styles.css
+@@ -0,0 +1,14 @@
++:root { font-family: Inter, system-ui, sans-serif; color: #0f172a; background: #f8fafc; }
++* { box-sizing: border-box; }
++body { margin: 0; }
++.app-shell { max-width: 760px; margin: 0 auto; padding: 1rem; display: grid; gap: .75rem; }
++.card { background: white; border-radius: .75rem; border: 1px solid #e2e8f0; padding: .75rem; display: grid; gap: .5rem; }
++textarea, input { width: 100%; padding: .5rem; border-radius: .5rem; border: 1px solid #cbd5e1; }
++button { border: 0; border-radius: 999px; padding: .4rem .75rem; background: #0f172a; color: white; cursor: pointer; margin-right: .35rem; }
++.feed { display: grid; gap: .75rem; }
++img { max-width: 100%; border-radius: .5rem; }
++.tags,.tag-list { display: flex; flex-wrap: wrap; gap: .35rem; }
++.inline-form { display: grid; gap: .4rem; }
++.comments { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
++.active { background: #2563eb; }
++.status { font-weight: 600; }
+diff --git a/src/sw.js b/src/sw.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..d5e838a677215f806e11f4fb20d009f9b52dcd33
+--- /dev/null
++++ b/src/sw.js
+@@ -0,0 +1,16 @@
++/// <reference lib="webworker" />
++import { precacheAndRoute } from 'workbox-precaching';
++import { registerRoute } from 'workbox-routing';
++import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
++
++precacheAndRoute(self.__WB_MANIFEST || []);
++
++registerRoute(({ request }) => request.mode === 'navigate', new NetworkFirst({ cacheName: 'pages-cache' }));
++registerRoute(
++  ({ request }) => ['style', 'script', 'worker'].includes(request.destination),
++  new StaleWhileRevalidate({ cacheName: 'asset-cache' })
++);
++registerRoute(
++  ({ url }) => url.origin === self.location.origin,
++  new StaleWhileRevalidate({ cacheName: 'app-runtime-cache' })
++);
+diff --git a/vite.config.js b/vite.config.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..2251abe5813f2bfe998c5e75098233d0ba569276
+--- /dev/null
++++ b/vite.config.js
+@@ -0,0 +1,27 @@
++import { defineConfig } from 'vite';
++import react from '@vitejs/plugin-react';
++import { VitePWA } from 'vite-plugin-pwa';
++
++export default defineConfig({
++  plugins: [
++    react(),
++    VitePWA({
++      registerType: 'autoUpdate',
++      strategies: 'injectManifest',
++      srcDir: 'src',
++      filename: 'sw.js',
++      manifest: {
++        name: 'Offline Social PWA',
++        short_name: 'OfflineSocial',
++        start_url: '/',
++        display: 'standalone',
++        background_color: '#f8fafc',
++        theme_color: '#0f172a',
++        icons: [
++          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
++          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' }
++        ]
++      }
++    })
++  ]
++});
