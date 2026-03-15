@@ -115,7 +115,7 @@ export default function App() {
 
     <div className="container">
 
-      <h1>Offline Social</h1>
+      <h1>MiPo</h1>
 
       <SyncStatusIndicator />
 
